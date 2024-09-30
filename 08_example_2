@@ -1,0 +1,65 @@
+// 기존 파라미터 및 핀 설정 그대로 사용
+#define PIN_LED  9
+#define PIN_TRIG 12
+#define PIN_ECHO 13
+
+#define SND_VEL 346.0
+#define INTERVAL 25
+#define PULSE_DURATION 10
+#define _DIST_MIN 100.0   // 최소 거리 (단위: mm)
+#define _DIST_MAX 300.0   // 최대 거리 (단위: mm)
+
+#define TIMEOUT ((INTERVAL / 2) * 1000.0)
+#define SCALE (0.001 * 0.5 * SND_VEL)
+
+unsigned long last_sampling_time;
+
+void setup() {
+  pinMode(PIN_LED, OUTPUT);
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECHO, INPUT);
+  digitalWrite(PIN_TRIG, LOW);
+  
+  Serial.begin(57600);
+}
+
+void loop() {
+  float distance;
+
+  if (millis() < (last_sampling_time + INTERVAL))
+    return;
+
+  distance = USS_measure(PIN_TRIG, PIN_ECHO);
+  
+  int brightness = calculateLEDBrightness(distance);
+
+  analogWrite(PIN_LED, brightness);
+
+  Serial.print("Distance: ");  
+  Serial.print(distance);
+  Serial.print(" mm, LED Brightness (PWM Value): ");  
+  Serial.println(brightness);
+
+  last_sampling_time = millis();  
+}
+
+float USS_measure(int TRIG, int ECHO) {
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(PULSE_DURATION);
+  digitalWrite(TRIG, LOW);
+  
+  return pulseIn(ECHO, HIGH, TIMEOUT) * SCALE;  
+}
+
+int calculateLEDBrightness(float distance) {
+  if (distance <= _DIST_MIN) {
+    return 255;  
+  } else if (distance >= _DIST_MAX) {
+    return 255;  
+  } else if (distance >= 200.0) {
+    
+    return map(distance, 200, 300, 0, 255);  
+  } else {
+    return map(distance, 100, 200, 255, 0);  
+  }
+}
